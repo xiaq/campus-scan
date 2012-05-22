@@ -42,7 +42,7 @@ class OpenPorts(Task):
                 for p, info in ports_stat.items():
                     if info['state'] == u'open':
                         open_ports.append(p)
-                sys.stderr.write('%s %s\n' % (addr, ' '.join(open_ports)))
+                sys.stderr.write('%s %r\n' % (addr, open_ports))
                 results.append((addr, open_ports))
             #except nmap.PortScannerError:
             else:
