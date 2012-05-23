@@ -32,12 +32,13 @@ class OpenPorts(Task):
             #try:
             if 1:
                 result = nm.scan(addr, arguments='-T4 -F')
-                services = result['nmap']['scaninfo']['tcp']['services']
+                if not services:
+                    services = result['nmap']['scaninfo']['tcp']['services']
 
                 if not result['scan'].has_key(addr):
                     sys.stderr.write('%s: no info\n' % addr)
                     continue
-                ports_stat = result['scan'][addr]['tcp']
+                ports_stat = result['scan'][addr].get('tcp', {})
                 open_ports = []
                 for p, info in ports_stat.items():
                     if info['state'] == u'open':
