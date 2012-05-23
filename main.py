@@ -62,12 +62,14 @@ class UpHosts(Task):
         for x in self.xs:
             net = self.template.format(x=x)
             nm = nmap.PortScanner()
-            #try:
             if 1:
+            #try:
                 nm.scan(net, arguments='-sn -T4')
                 uphosts = int(nm.scanstats()['uphosts'])
             else:
             #except nmap.PortScannerError:
+                # NOTE The only known cause of exception here is "RTTVAR has
+                # grown to over 2.3 seconds, decreasing to 2.0"
                 uphosts = None
             sys.stderr.write('%d %s %d\n' % (x, net, uphosts))
             results.append((x, uphosts))
