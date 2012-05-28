@@ -6,7 +6,8 @@ import json
 
 import nmap
 import ipaddr
-from matplotlib import pyplot
+import numpy as np
+from matplotlib import mlab, pyplot as plt
 
 
 class Task:
@@ -62,35 +63,49 @@ class UpHosts(Task):
         for x in self.xs:
             net = self.template.format(x=x)
             nm = nmap.PortScanner()
-            if 1:
-            #try:
+            try:
                 nm.scan(net, arguments='-sn -T4')
                 uphosts = int(nm.scanstats()['uphosts'])
-            else:
-            #except nmap.PortScannerError:
+            except nmap.PortScannerError:
                 # NOTE The only known cause of exception here is "RTTVAR has
                 # grown to over 2.3 seconds, decreasing to 2.0"
                 uphosts = None
-            sys.stderr.write('%d %s %d\n' % (x, net, uphosts))
+            sys.stderr.write('%d %s %r\n' % (x, net, uphosts))
             results.append((x, uphosts))
         return results
 
     @classmethod
-    def plot(cls, results):
+    def plot(cls, results, folder):
+        def make_fname(name):
+            return os.path.join(folder, name)
+
         xs, ys = zip(*results)
         ys = [y or 0 for y in ys]
-        pyplot.show(pyplot.bar(xs, ys))
 
+        # XXX hardcoded
+        plt.suptitle('uphosts of 59.66.x.0/24')
+        plt.gcf().set_size_inches(10, 40)
+        plt.xticks(np.arange(5) * 64)
+        plt.yticks(np.arange(256))
+        plt.grid()
+        plt.axis([0, 256, 255, 0])
+        plt.barh(xs, ys, align='center', linewidth=2)
+        plt.savefig(make_fname('uphosts.png'))
+        plt.close()
+
+        bins = np.arange(17) * 16
+
+        plt.suptitle('uphosts of 59.66.x.0/24: distribution')
+        plt.hist(ys, bins)
+        plt.xticks(bins)
+        plt.savefig(make_fname('uphosts-dist.png'))
+        plt.close()
 
 def main():
     def _usage():
         raise ValueError
-        sys.stderr.write('Usage: no doc yet\n')
-        sys.exit(1)
-        
-    if os.getuid() != 0:
-        sys.stderr.write('Warning: Not running as root. '
-                         'Performance may be degraded.\n')
+        #sys.stderr.write('Usage: no doc yet\n')
+        #sys.exit(1)
 
     if len(sys.argv) < 2:
         _usage()
@@ -100,19 +115,26 @@ def main():
     UPHOSTS = 'uphosts'
     OPENPORTS = 'openports'
 
+    # XXX handmade option parser
     task, verb = sys.argv[1:3]
+    additional = sys.argv[3:]
     if verb == SCAN:
+        if os.getuid() != 0:
+            sys.stderr.write('Warning: Not scanning as root. '
+                             'Performance may be degraded.\n')
         if task == UPHOSTS:
             worker = UpHosts('59.66.{x}.0/24', range(256))
         elif task == OPENPORTS:
-            worker = OpenPorts('59.66.0.0/16')
+            subnet = additional and additional[0] or '59.66.0.0/16'
+            worker = OpenPorts(subnet)
         else:
             _usage()
         json.dump(worker.scan(), sys.stdout)
     elif verb == PLOT:
         results = json.load(sys.stdin)
+        folder = additional and additional[0] or '.'
         if task == UPHOSTS:
-            UpHosts.plot(results)
+            UpHosts.plot(results, folder)
         elif task == OPENPORTS:
             raise NotImplementedError
         else:
