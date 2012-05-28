@@ -3,6 +3,7 @@
 import os
 import sys
 import json
+from collections import Counter
 
 import nmap
 import ipaddr
@@ -51,6 +52,37 @@ class OpenPorts(Task):
                 pass
         return results
 
+    @classmethod
+    def plot(cls, results):
+        figures = []
+
+        num_open_ports = []
+        port_hits = Counter()
+        for addr, open_ports in results:
+            num_open_ports.append(len(open_ports))
+            port_hits.update(Counter(open_ports))
+        top_ports = port_hits.most_common(10)
+
+        # plot 1: distribution of number of open ports
+        bins = np.arange(11) * 10
+        plt.suptitle('number of opened ports: distribution')
+        plt.hist(num_open_ports, bins)
+        plt.xticks(bins)
+
+        figures.append(('openports-dist', plt.gcf()))
+        plt.figure()
+
+        # plot 2: top list of opened ports
+        xs, ys = zip(*top_ports)
+        plt.suptitle('top open ports')
+        plt.yticks(10)
+        plt.grid()
+        plt.ylim(0, 10)
+        plt.barh(xs, ys, align='center')
+
+        figures.append('openports-top', plt.gcf())
+        return figures
+
 
 class UpHosts(Task):
     '''Scan a series of subnets for online hosts.'''
@@ -75,9 +107,8 @@ class UpHosts(Task):
         return results
 
     @classmethod
-    def plot(cls, results, folder):
-        def make_fname(name):
-            return os.path.join(folder, name)
+    def plot(cls, results):
+        figures = []
 
         xs, ys = zip(*results)
         ys = [y or 0 for y in ys]
@@ -89,17 +120,19 @@ class UpHosts(Task):
         plt.yticks(np.arange(256))
         plt.grid()
         plt.axis([0, 256, 255, 0])
-        plt.barh(xs, ys, align='center', linewidth=2)
-        plt.savefig(make_fname('uphosts.png'))
-        plt.close()
+        plt.barh(xs, ys, align='center')
+
+        figures.append(('uphosts', plt.gcf()))
+        plt.figure()
 
         bins = np.arange(17) * 16
 
         plt.suptitle('uphosts of 59.66.x.0/24: distribution')
         plt.hist(ys, bins)
         plt.xticks(bins)
-        plt.savefig(make_fname('uphosts-dist.png'))
-        plt.close()
+
+        figures.append(('uphosts-dist', plt.gcf()))
+        return figures
 
 def main():
     def _usage():
@@ -131,14 +164,19 @@ def main():
             _usage()
         json.dump(worker.scan(), sys.stdout)
     elif verb == PLOT:
-        results = json.load(sys.stdin)
-        folder = additional and additional[0] or '.'
         if task == UPHOSTS:
-            UpHosts.plot(results, folder)
+            cls = UpHosts
         elif task == OPENPORTS:
-            raise NotImplementedError
+            cls = OpenPorts
         else:
             _usage()
+
+        results = json.load(sys.stdin)
+        folder = additional and additional[0] or '.'
+        figures = cls.plot(results)
+        for name, fig in figures:
+            fig.savefig(os.path.join(folder, '%s.png' % name))
+            del fig
     else:
         _usage()
 
