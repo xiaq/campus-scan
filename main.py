@@ -3,12 +3,34 @@
 import os
 import sys
 import json
+import socket
 from collections import Counter
 
 import nmap
 import ipaddr
 import numpy as np
 from matplotlib import mlab, pyplot as plt
+
+def _delta(a):
+    return a[1] - a[0]
+
+def _bar_label(rects, artist, offset_ratio=0.01):
+    yoffset = offset_ratio * _delta(artist.ylim())
+    for rect in rects:
+        height = rect.get_height()
+        artist.text(rect.get_x() + rect.get_width() / 2.,
+                    height + yoffset,
+                    '%d' % int(height),
+                    ha='center', va='bottom')
+
+def _barh_label(rects, artist, offset_ratio=0.01):
+    xoffset = offset_ratio * _delta(artist.xlim())
+    for rect in rects:
+        width = rect.get_width()
+        artist.text(width + xoffset,
+                    rect.get_y() + rect.get_height() / 2.,
+                    '%d' % int(width),
+                    ha='left', va='center')
 
 
 class Task:
@@ -61,7 +83,6 @@ class OpenPorts(Task):
         for addr, open_ports in results:
             num_open_ports.append(len(open_ports))
             port_hits.update(Counter(open_ports))
-        top_ports = port_hits.most_common(10)
 
         # plot 1: distribution of number of open ports
         bins = np.arange(11) * 10
@@ -72,15 +93,24 @@ class OpenPorts(Task):
         figures.append(('openports-dist', plt.gcf()))
         plt.figure()
 
+        def _getserv(p):
+            try:
+                return socket.getservbyport(p, 'tcp')
+            except socket.error:
+                return '?'
         # plot 2: top list of opened ports
-        xs, ys = zip(*top_ports)
-        plt.suptitle('top open ports')
-        plt.yticks(10)
+        N = 10
+        top_ports = port_hits.most_common(N)
+        ports, hits = zip(*top_ports)
+        plt.suptitle('top open tcp ports')
         plt.grid()
-        plt.ylim(0, 10)
-        plt.barh(xs, ys, align='center')
+        plt.ylim(N-0.5, -0.5)
+        ticks = ['%d\n%s' % (i, _getserv(i)) for i in ports]
+        plt.yticks(np.arange(N), ticks)
+        rects = plt.barh(np.arange(N), hits, align='center')
+        _barh_label(rects, plt)
 
-        figures.append('openports-top', plt.gcf())
+        figures.append(('openports-top', plt.gcf()))
         return figures
 
 
@@ -119,7 +149,7 @@ class UpHosts(Task):
         plt.xticks(np.arange(5) * 64)
         plt.yticks(np.arange(256))
         plt.grid()
-        plt.axis([0, 256, 255, 0])
+        plt.axis([0, 256, 255.5, -0.5])
         plt.barh(xs, ys, align='center')
 
         figures.append(('uphosts', plt.gcf()))
