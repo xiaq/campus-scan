@@ -1,0 +1,24 @@
+img {
+	max-width: 84%;
+	margin: auto;
+}
+
+@media screen and (min-width: 800px) {
+	body {
+		background-color: #883388;
+		font-size: 16px;
+	}
+
+	#wrapper {
+		background-color: #FFFFFF;
+		border-radius: 5px;
+		margin: 0 15% 0 15%;
+		width: auto;
+	}
+
+	#header, #content, #footer {
+		margin-left: 1em;
+		margin-right: 1em;
+	}
+}
+/* vi: se noet ts=8 sw=8: */
