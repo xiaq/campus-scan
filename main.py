@@ -4,11 +4,15 @@ import os
 import sys
 import json
 import socket
+import getopt
 from collections import Counter
 
 import nmap
 import ipaddr
 import numpy as np
+import matplotlib
+
+matplotlib.use('Agg')
 from matplotlib import mlab, pyplot as plt
 
 def _delta(a):
@@ -182,8 +186,8 @@ def main():
     if len(args) < 2:
         _usage()
 
-    task, verb = args[1:3]
-    additional = args[3:]
+    task, verb = args[0:2]
+    additional = args[2:]
 
     if verb == SCAN:
         if os.getuid() != 0:
