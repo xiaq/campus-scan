@@ -170,17 +170,21 @@ def main():
         #sys.stderr.write('Usage: no doc yet\n')
         #sys.exit(1)
 
-    if len(sys.argv) < 2:
-        _usage()
-
     SCAN = 'scan'
     PLOT = 'plot'
     UPHOSTS = 'uphosts'
     OPENPORTS = 'openports'
 
-    # XXX handmade option parser
-    task, verb = sys.argv[1:3]
-    additional = sys.argv[3:]
+    opts, args = getopt.gnu_getopt(sys.argv[1:], 'f:')
+    opts = dict(opts)
+    fname = opts.get('-f', None)
+
+    if len(args) < 2:
+        _usage()
+
+    task, verb = args[1:3]
+    additional = args[3:]
+
     if verb == SCAN:
         if os.getuid() != 0:
             sys.stderr.write('Warning: Not scanning as root. '
@@ -192,7 +196,13 @@ def main():
             worker = OpenPorts(subnet)
         else:
             _usage()
-        json.dump(worker.scan(), sys.stdout)
+        if fname:
+            stream = open(fname, 'w')
+        else:
+            stream = sys.stdout
+        json.dump(worker.scan(), stream)
+        if fname:
+            stream.close()
     elif verb == PLOT:
         if task == UPHOSTS:
             cls = UpHosts
@@ -201,11 +211,18 @@ def main():
         else:
             _usage()
 
-        results = json.load(sys.stdin)
+        if fname:
+            stream = open(fname, 'r')
+        else:
+            stream = sys.stdin
+        results = json.load(stream)
+        if fname:
+            stream.close()
         folder = additional and additional[0] or '.'
         figures = cls.plot(results)
         for name, fig in figures:
-            fig.savefig(os.path.join(folder, '%s.png' % name))
+            fig.savefig(os.path.join(folder, '%s.png' % name),
+                        bbox_inches='tight')
             del fig
     else:
         _usage()
