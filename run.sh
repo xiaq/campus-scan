@@ -50,7 +50,7 @@ if [ -e "$lock_file" ]; then
 else
     touch "$lock_file"
     lock_file_f="$(readlink -f "$lock_file")"
-    trap on_exit INT QUIT TERM
+    trap on_exit INT QUIT TERM EXIT
 fi
 
 if [ -z "$dest_dir" ]; then
