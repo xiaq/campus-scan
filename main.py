@@ -37,7 +37,7 @@ def _barh_label(rects, artist, offset_ratio=0.01):
                     ha='left', va='center')
 
 
-class Task:
+class Task(object):
     pass
 
 
