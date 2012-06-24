@@ -14,10 +14,10 @@ Dependencies
 
    sed -e '1s/python2/python/' -i main.py
 
-* Python packages: ``numpy``, ``matplotlib``, ``nmap`` and ``ipaddr``. Some of
-  these may be available from your distribution. You can always install a
-  Python package with with ``easy_install`` or ``pip`` (the latter being
-  preferred).
+* Python packages: ``numpy``, ``matplotlib``, ``python-nmap`` and ``ipaddr``.
+  Some of these may be available from your distribution. You can always
+  install a Python package with with ``easy_install`` or ``pip`` (the latter
+  being preferred).
 
 Usage
 =====
